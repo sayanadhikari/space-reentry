@@ -1,0 +1,473 @@
+reentry_sheath
+{
+	Particle in Cell Simulation of sheath formation in a spacecraft antenna 
+	Cartesian geometry
+	Plasma Density 10^18 m^-3
+
+
+	Developed by Mr. Sayan Adhikari, CPP-IPR, IND
+
+}
+Variables
+{
+//////////////////////USEFUL CONSTANTS//////////////////////////////////////////////////////
+
+	EPS0 = 8.85418782e-12
+	Q = 1.60217646e-19
+
+//////////////////////USEFUL PARAMETERS///////////////////////////////////////
+	
+	MAGFIELDSTRENGTH = 1 // in TESLA
+	phi = 20    //Angle of inclination of MAG FIELD
+	PLASMA_DENSITY = 1e18	//1e15 //per m^3
+	m_i = 2.3258671E-26 	//Nitrogen Mass
+	m_e = 9.11E-31 	// mass of electron
+	T_i = 10 	//in eV
+	T_e = 10 	//in eV
+	
+//	T_iMKS = sqrt(3*Q*T_i/m_i) 	//in MKS	6.5655e+04
+//	T_slMKS = sqrt(3*Q*T_sl/m_e)	//in MKS	3.9785e+06
+	
+	ni = PLASMA_DENSITY
+	ne = PLASMA_DENSITY
+
+	vt_e = 2.2954E6	//sqrt(3*Q*T_e/m_e)
+	vt_i = 3.788E4 	//sqrt(3*Q*T_i/m_i)
+
+	Je = Q*ne*vt_e
+	Ji = Q*ni*vt_i
+
+	np2c = 8.0E10	//3.0e8	//3.000e+10	// physical/computer particle ratio
+
+///////////////////SPATIAL GRID SIZE/////////////////////////////////////////////////////
+	
+	//lambda_D =  2.3524e-05	//sqrt((EPS0*kTe)/(PLASMA_DENSITY*Q))
+
+///////////////////SPATIAL GRID DIMENSION////////////////////////////////////////////////
+
+	Jmax = 128
+	Kmax = 64	//256
+
+//////////////////SIMULATION DOMAIN SIZE////////////////////////////////////////
+
+	x1max = 0.10	
+	x1min = 0.0	 
+	x2max = 0.06	
+	x2min = 0.0
+	
+	x1ANOmax = 0.12
+	x2ANOmin = -0.02
+	x2ANOmax = 0.08
+	
+	
+	dx = x1max/Jmax
+
+////////////////////ELECTRODE MODELLING ///////////////////////////////////////
+	cathode_lp = 0.025
+	cathode_up = 0.035
+
+///////////////////TEMPORAL GRID SIZE/////////////////////////////////////////////
+	
+	TIMESTEP = 1.000e-11
+
+//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
+}
+
+Region
+{
+Grid
+{
+	n2 = 1
+	x2f = x2ANOmax
+	x2s = x2ANOmin
+	K = Kmax
+	n1 = 1
+	x1f = x1ANOmax
+	x1s = x1min
+	J = Jmax
+	Geometry=1
+//////////////////FOR PERIODIC BOUNDARY///////////////////////////////////
+
+	//PeriodicFlagX1 = 1 // periodic in x1
+	//PeriodicFlagX2 = 1 // periodic in x2
+
+///////////////////////////////////////////////////////////////////////////
+	Rule
+	{
+	Limit
+	 n1 < 2.500e-01
+	 Fatal -- n1 < 0.25 grid spacing too nonuniform to ensure accuracy
+	}
+}
+Control
+{
+//	B01analytic =  MAGFIELDSTRENGTH*exp(x1)	
+	B02analytic =  MAGFIELDSTRENGTH*(x1*x1)		
+	dt = TIMESTEP
+	ElectrostaticFlag=4
+	NonRelativisticFlag=0
+	initPoissonSolve=1
+	Rule
+	{
+	Limit
+	 dt <= 0.000e+00
+	 Fatal -- time step must be positive
+	}
+}
+
+//MCC
+//{
+//	gas = H
+//	pressure =  1.2E-2
+//	temperature = 10	// Neutral temperature is same with ion temperature
+//	eSpecies = electrons
+//	iSpecies = H+
+//}
+
+Species
+{
+	name = electrons
+	m = 9.11E-31
+	q = -1.6e-19
+	collisionModel = electron
+	rmsDiagnosticsFlag=0
+	particleLimit = 2.5e+06
+}
+Species
+{
+        name = Nitrogen
+        m = m_i
+        q = 1.6e-19
+	collisionModel= ion
+//	rmsDiagnosticsFlag = 1
+	particleLimit = 2.5e+06
+}
+Equipotential
+{
+	C = 0
+	reflection = 0
+	Segment
+	{
+	A1 = x1min
+	A2 = x2min
+	B1 = x1ANOmax
+	B2 = x2min
+	normal = 1
+	}
+	
+	Segment
+	{
+	A1 = x1min
+	A2 = x2ANOmin
+	B1 = x1ANOmax
+	B2 = x2ANOmin
+	normal = 1
+	}
+	
+	Segment
+	{
+	A1 = x1min
+	A2 = x2ANOmin
+	B1 = x1min
+	B2 = x2min
+	normal = 1
+	}
+	
+	Segment
+	{
+	A1 = x1ANOmax
+	A2 = x2ANOmin
+	B1 = x1ANOmax
+	B2 = x2min
+	normal = -1
+	}
+   name = anode_bottom
+
+}
+
+
+
+Dielectric
+	 {
+		  er = 2.1   //Teflon
+		  Segment
+			{
+			A1 = x1max
+			A2 = cathode_up
+			B1 = x1max
+			B2 = x2max
+			normal = -1
+			name = left part TOP Dielectric
+			}
+			
+			Segment
+			{
+			A1 = x1ANOmax
+			A2 = cathode_up
+			B1 = x1ANOmax
+			B2 = x2max
+			normal = -1
+			name = Right part TOP Dielectric
+			}
+			
+			Segment
+			{
+			A1 = x1max
+			A2 = cathode_up
+			B1 = x1ANOmax
+			B2 = cathode_up
+			normal = 1
+			name = bottom part TOP Dielectric
+			}
+			
+			Segment
+			{
+			A1 = x1max
+			A2 = x2max
+			B1 = x1ANOmax
+			B2 = x2max
+			normal = -1
+			name = top part TOP Dielectric
+			}
+	 }
+
+Equipotential
+{
+	C = -100
+	reflection = 0
+	Segment
+	{
+	A1 = x1max
+	A2 = cathode_lp
+	B1 = x1max
+	B2 = cathode_up
+	normal = -1
+	name = left part CATHODE
+	}
+	
+	Segment
+	{
+	A1 = x1ANOmax
+	A2 = cathode_lp
+	B1 = x1ANOmax
+	B2 = cathode_up
+	normal = -1
+	name = Right part CATHODE
+	}
+	
+	Segment
+	{
+	A1 = x1max
+	A2 = cathode_lp
+	B1 = x1ANOmax
+	B2 = cathode_lp
+	normal = 1
+	name = bottom part CATHODE
+	}
+	
+	Segment
+	{
+	A1 = x1max
+	A2 = cathode_up
+	B1 = x1ANOmax
+	B2 = cathode_up
+	normal = -1
+	name = top part CATHODE
+	}
+   name = cathode
+
+}
+
+
+Dielectric
+	 {
+		  er = 2.1  //Teflon
+		  Segment
+			{
+			A1 = x1max
+			A2 = x2min
+			B1 = x1max
+			B2 = cathode_lp
+			normal = -1
+			name = left part BOTTOM Dielectric
+			}
+			
+			Segment
+			{
+			A1 = x1ANOmax
+			A2 = x2min
+			B1 = x1ANOmax
+			B2 = cathode_lp
+			normal = -1
+			name = Right part BOTTOM Dielectric
+			}
+			
+			Segment
+			{
+			A1 = x1max
+			A2 = x2min
+			B1 = x1ANOmax
+			B2 = x2min
+			normal = 1
+			name = bottom part BOTTOM Dielectric
+			}
+			
+			Segment
+			{
+			A1 = x1max
+			A2 = cathode_lp
+			B1 = x1ANOmax
+			B2 = cathode_lp
+			normal = -1
+			name = top part BOTTOM Dielectric
+			}
+	 }
+
+
+Equipotential
+{
+	C = 0
+	reflection = 0
+	Segment
+	{
+	A1 = x1min
+	A2 = x2max
+	B1 = x1ANOmax
+	B2 = x2max
+	normal = -1
+	}
+	
+	Segment
+	{
+	A1 = x1min
+	A2 = x2ANOmax
+	B1 = x1ANOmax
+	B2 = x2ANOmax
+	normal = -1
+	}
+	
+	Segment
+	{
+	A1 = x1min
+	A2 = x2max
+	B1 = x1min
+	B2 = x2ANOmax
+	normal = 1
+	}
+	
+	Segment
+	{
+	A1 = x1ANOmax
+	A2 = x2max
+	B1 = x1ANOmax
+	B2 = x2ANOmax
+	normal = -1
+	}
+   name = anode_top
+
+}
+
+
+//Conductor
+//{
+//	C = 0
+//	QuseFlag=1
+//	reflection = 0
+//	A1 = 0
+//	A2 = 0
+//	B1 = 0
+//	B2 = x2max
+//	normal = 1
+//	fill =1
+//   name = source		 	  
+//}
+		 	  
+
+//////////////////////////////////PARTICLE LOADING PART////////////////////////////////////////////	
+BeamEmitter
+{
+	A1 = 0
+	A2 = 0
+	B1 = 0
+	B2 = x2max
+	normal = 1
+	speciesName = Nitrogen
+	I = Ji*x2max
+	np2c = np2c
+	v1drift = 1E2
+	v2drift = 0
+	v3drift = 0
+//	v1thermal = 10
+//	v2thermal = 0
+//	v3thermal = 0
+	//Ucutoff = VefCUTOFF
+   units = EV
+   temperature =  0.01 //6.5655e+04
+}
+
+BeamEmitter
+{
+	A1 = 0
+	A2 = 0
+	B1 = 0
+	B2 = x2max
+	normal = 1
+	speciesName = electrons
+	I = Je*x2max
+	np2c = np2c
+	v1drift = 1E2
+	v2drift = 0
+	v3drift = 0
+	//Ucutoff = VefCUTOFF
+//	v1thermal = 10
+//	v2thermal = 0
+//	v3thermal = 0
+   units = EV
+   temperature = 0.1	//3.9785e+06
+   name = right_boundary_special
+}
+
+
+Diagnostic
+{
+	title = Average Potential
+	A1 = x1min
+	A2 = x2ANOmin
+	B1 = x1ANOmax
+	B2 = x2ANOmax
+	VarName = phi
+	x1_Label = time
+  	x2_Label = Voltage
+	integral = sum
+  	HistMax = 10240
+}
+
+Diagnostic
+{
+	title = Wave detection near entrance
+	A1 = 0.25*x1max
+	B1 = 0.25*x1max
+	A2 = x2max/2  //0
+	B2 = x2max/2
+	VarName = phi
+	x1_Label = time
+  	x2_Label = Voltage
+	integral = sum
+  	HistMax = 10240
+}
+Diagnostic
+{
+	title = Wave detection near CATHODE
+	A1 = 0.95*x1max
+	B1 = 0.95*x1max
+	A2 = x2max/2  //0
+	B2 = x2max/2
+	VarName = phi
+	x1_Label = time
+  	x2_Label = Voltage
+	integral = sum
+  	HistMax = 10240
+}
+
+}
